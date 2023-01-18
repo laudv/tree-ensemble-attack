@@ -36,36 +36,50 @@ bool IsEq(const std::string& a, const std::string& b) {
   return a == b;
 }
 
-std::vector<std::pair<int, Point>> LoadSVMFile(const char* path,
+std::pair<int, Point> LoadSVMLine(const std::string& line,
+                                  int feature_dim,
+                                  int start_idx) {
+  if (line.size() <= 2)
+    throw std::runtime_error("invalid line");
+  auto* s = line.c_str();
+  int label;
+  int pos;
+  sscanf(s, "%d%n", &label, &pos);
+  s += pos;
+  Point p(feature_dim + start_idx);
+  int axis;
+  double value;
+  while (sscanf(s, "%d:%lf%n", &axis, &value, &pos) == 2) {
+    assert(axis < p.Size());
+    // assert(value >= 0 && value <= 1.0);
+    value = std::max(0.0, std::min(1.0, value));
+    p[axis] = value;
+    s += pos;
+  }
+
+  return std::make_pair(label, std::move(p));
+}
+
+std::vector<std::pair<int, Point>> LoadSVMFile(std::istream& fin,
                                              int feature_dim,
                                              int start_idx) {
   std::vector<std::pair<int, Point>> parsed_data;
-
-  std::ifstream fin(path);
   std::string line;
 
   while (std::getline(fin, line)) {
     if (line.size() <= 2)
       break;
-    auto* s = line.c_str();
-    int label;
-    int pos;
-    sscanf(s, "%d%n", &label, &pos);
-    s += pos;
-    Point p(feature_dim + start_idx);
-    int axis;
-    double value;
-    while (sscanf(s, "%d:%lf%n", &axis, &value, &pos) == 2) {
-      assert(axis < p.Size());
-      // assert(value >= 0 && value <= 1.0);
-      value = std::max(0.0, std::min(1.0, value));
-      p[axis] = value;
-      s += pos;
-    }
-    parsed_data.emplace_back(std::make_pair(label, std::move(p)));
+    parsed_data.push_back(LoadSVMLine(line, feature_dim, start_idx));
   }
 
   return std::move(parsed_data);
+}
+
+std::vector<std::pair<int, Point>> LoadSVMFile(const char* path,
+                                             int feature_dim,
+                                             int start_idx) {
+  std::ifstream fin(path);
+  return LoadSVMFile(fin, feature_dim, start_idx);
 }
 
 double Clip(double v, double min_v, double max_v) {

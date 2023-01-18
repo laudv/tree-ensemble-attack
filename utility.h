@@ -29,7 +29,8 @@ namespace cz {
 class BoundingBox;
 
 // TODO: Verify if it's small enough for all datasets.
-const double eps = 1e-10;
+//const double eps = 1e-10;
+const double eps = 1e-5; // single precision float
 
 #ifdef DEBUG
 #define DCHECK(condition) \
@@ -121,6 +122,15 @@ struct Config {
     std::ifstream fin(config_path_in);
     nlohmann::json config_json;
     fin >> config_json;
+    ParseJson(config_path_in, config_json);
+  }
+  explicit Config(std::istream& config_str) {
+    nlohmann::json config_json;
+    config_str >> config_json;
+    ParseJson("-", config_json);
+  }
+
+  void ParseJson(const char* config_path_in, const nlohmann::json& config_json) {
     cout << "Parsing config:" << config_json << endl;
     config_path = config_path_in;
     inputs_path = config_json["inputs"];
@@ -416,6 +426,12 @@ struct DirectionHash {
   }
 };
 
+std::pair<int, Point> LoadSVMLine(const std::string& line,
+                                  int feature_dim,
+                                  int start_idx);
+std::vector<std::pair<int, Point>> LoadSVMFile(std::istream&,
+                                             int feature_dim,
+                                             int start_idx);
 std::vector<std::pair<int, Point>> LoadSVMFile(const char* path,
                                              int feature_dim,
                                              int start_idx);

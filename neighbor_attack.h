@@ -71,6 +71,7 @@ class NeighborAttack {
   ~NeighborAttack();
 
   void LoadForestFromJson(const std::string& path);
+  void LoadForestFromVeritasJson(const nlohmann::json& json);
 
   Result FindAdversarialPoint(const Point& victim_point) const;
 
@@ -84,6 +85,7 @@ class NeighborAttack {
                               const Point& victim_point) const;
 
   const DecisionForest* ForestForTesting() const;
+  const DecisionForest& Forest() const;
 
  private:
   friend class NeighborAttackTest;

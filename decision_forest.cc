@@ -21,7 +21,13 @@ std::unique_ptr<DecisionForest> DecisionForest::CreateFromJson(
   std::ifstream fin(path);
   json forest_array;
   fin >> forest_array;
+  return CreateFromJson(forest_array, num_class, max_feature_id);
+}
 
+std::unique_ptr<DecisionForest> DecisionForest::CreateFromJson(
+    const json& forest_array,
+    int num_class,
+    int max_feature_id) {
   auto forest = std::make_unique<DecisionForest>(num_class, max_feature_id);
   int tree_count = 0;
   for (const auto& tree_obj : forest_array) {
@@ -37,8 +43,38 @@ std::unique_ptr<DecisionForest> DecisionForest::CreateFromJson(
   return std::move(forest);
 }
 
+std::unique_ptr<DecisionForest> DecisionForest::CreateFromVeritasJson(
+    const json& forest_json,
+    int num_class,
+    int max_feature_id) {
+  int tree_count = 0;
+  auto forest = std::make_unique<DecisionForest>(num_class, max_feature_id);
+  const auto& trees = forest_json["trees"];
+  double base_score = forest_json["base_score"];
+  base_score /= trees.size();
+  for (const auto& tree_obj : trees) {
+    assert(tree_obj.is_object());
+    int class_id = (num_class == 2) ? 1 : (tree_count % num_class);
+    forest->AddDecisionTree(
+        DecisionTree::CreateFromVeritasJson(tree_obj, class_id, true, base_score));
+    ++tree_count;
+  }
+
+  forest->Setup();
+
+  return forest;
+}
+
 int DecisionForest::PredictLabel(const Point& x) const {
   return MaxIndex(ComputeScores(x));
+}
+
+double DecisionForest::ComputeScore(const Point& x) const {
+    assert(num_class_ == 2);
+    double score = 0.0;
+    for (const auto& tree : trees_)
+        score += tree->PredictLabel(x);
+    return score;
 }
 
 int DecisionForest::PredictLabelBetween(const Point& x,
@@ -86,7 +122,7 @@ void DecisionForest::ComputeFeatureSplits() {
 }
 
 std::vector<double> DecisionForest::ComputeScores(const Point& x) const {
-  std::vector<double> scores(num_class_, 0);
+  std::vector<double> scores(num_class_, 0.0);
   assert(num_class_ >= 2);
   for (const auto& tree : trees_)
     scores[tree->ClassId()] += tree->PredictLabel(x);

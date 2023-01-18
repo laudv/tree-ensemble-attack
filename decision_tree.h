@@ -16,6 +16,9 @@ class DecisionTree {
   static std::unique_ptr<DecisionTree>
   CreateFromJson(const nlohmann::json& tree_obj, int class_id, bool is_root);
 
+  static std::unique_ptr<DecisionTree>
+  CreateFromVeritasJson(const nlohmann::json& tree_obj, int class_id, bool is_root, double base_score);
+
   int ClassId() const;
   double PredictLabel(const Point& x) const;
 

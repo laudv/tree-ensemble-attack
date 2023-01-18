@@ -5,6 +5,7 @@
 #include <list>
 
 #include <boost/filesystem.hpp>
+#include <sstream>
 #include "nlohmann/json.hpp"
 
 #include "decision_forest.h"
@@ -41,6 +42,22 @@ std::map<int, std::vector<Point>> LoadMilpAdv(
   }
 
   return std::move(milp_adv);
+}
+
+void ReadStdInChunk(std::stringstream& ss) {
+  ss.str(std::string());
+  ss.clear();
+  for (std::string line; std::getline(std::cin, line);) {
+    if (line != "<break>")
+      ss << line << std::endl;
+    else break;
+  }
+}
+
+std::stringstream ReadStdInChunk() {
+  std::stringstream ss;
+  ReadStdInChunk(ss);
+  return ss;
 }
 
 void BenchmarkDistortion(const Config& config) {
@@ -211,6 +228,76 @@ void BenchmarkDistortion(const Config& config) {
        << "Time per point: " << total_seconds / actual_num_example << endl;
 }
 
+void BenchmarkDistortionVeritas(const Config& config) {
+  using namespace std::chrono;
+  auto attack = std::make_unique<NeighborAttack>(config);
+  json forest_json;
+  auto forest_ss = ReadStdInChunk();
+  forest_ss >> forest_json;
+  cout << "loading Veritas model from stdin..." << endl;
+  attack->LoadForestFromVeritasJson(forest_json);
+
+  std::stringstream example_ss;
+  int example_count = 0;
+  int actual_example_count = 0;
+  for (; true; ++example_count)
+  {
+      // TODO block on stdin input
+      //
+      ReadStdInChunk(example_ss);
+
+      if (example_ss.tellp() <= 0)
+          break;
+
+      cout << "Loading example " << example_count << " from stdin..." << endl;
+      //cout << example_ss.str() << endl;
+
+      auto&& [label, point] = cz::LoadSVMLine(
+          example_ss.str(), config.num_features, config.feature_start);
+
+      double y_pred = attack->Forest().PredictLabel(point);
+      double y_score = attack->Forest().ComputeScore(point);
+      cout << "label=" << label << ", point=" << point.ToDebugString()
+           << ", pred=" << y_score << endl;
+
+      if (label != y_pred) {
+          cout << "<INCORRECT_PREDICTION>example " << example_count
+              << ": label=" << label << ", pred=" << y_pred
+              << ", score=" << y_score
+              //<< " for example " << point.ToDebugString()
+              << endl;
+          continue;
+      }
+
+      auto start_time = high_resolution_clock::now();
+      auto result = attack->FindAdversarialPoint(point);
+      auto end_time = high_resolution_clock::now();
+      double total_sec =
+          static_cast<double>(
+              duration_cast<milliseconds>(end_time - start_time).count()) /
+          1000.0;
+      cout << "<TIME>" << total_sec << endl;
+
+      if (!result.success()) {
+          cout << "<FAIL>" << example_count << endl;
+      } else {
+          const Point& best_linf_point = result.best_points[-1];
+          // <true label> <adv label> [<feat_id>:<value>]+
+          cout << "<ADV_EX>"
+              << y_pred
+              << " "
+              << attack->Forest().PredictLabel(best_linf_point)
+              << " "
+              << best_linf_point.ToDebugString() << endl;
+
+          ++actual_example_count;
+      }
+  }
+
+  cout << "Done" << endl;
+
+}
+
 struct ModelStats {
   double test_accuracy;
   int num_test_examples;
@@ -286,6 +373,14 @@ int main(int argc, char* argv[]) {
     cout << "Verifing model accuracy..." << endl;
     VerifyModelAccuracy();
     return 0;
+  }
+
+  if (strcmp(argv[1], "-") == 0) {
+      cout << "Reading config from stdin..." << endl;
+      std::stringstream ss_config = ReadStdInChunk();
+      Config config(ss_config);
+      BenchmarkDistortionVeritas(config);
+      return 0;
   }
 
   cout << "Using config:" << argv[1] << endl;

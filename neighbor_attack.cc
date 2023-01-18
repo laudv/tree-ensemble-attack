@@ -10,6 +10,7 @@
 #include <random>
 
 #include <boost/lexical_cast.hpp>
+#include <stdexcept>
 
 #include "bounding_box.h"
 #include "decision_forest.h"
@@ -306,6 +307,18 @@ void NeighborAttack::LoadForestFromJson(const std::string& path) {
                         config_.feature_start);
     // Move to vector for better parallelize.
     train_data_.insert(train_data_.end(), train_list.begin(), train_list.end());
+  }
+}
+
+void NeighborAttack::LoadForestFromVeritasJson(const nlohmann::json& json) {
+  assert(!forest_);
+  forest_ = DecisionForest::CreateFromVeritasJson(
+      json, config_.num_classes,
+      config_.num_features + config_.feature_start - 1);
+
+  // Also load train data if it's RBA-Appr (Yang et al. 2019).
+  if (config_.search_mode == SearchMode::Region) {
+      throw std::runtime_error("not supported");
   }
 }
 
@@ -624,6 +637,10 @@ void NeighborAttack::RegionBasedAttackAppr_ThreadRun(int task_id,
 
 const DecisionForest* NeighborAttack::ForestForTesting() const {
   return forest_.get();
+}
+
+const DecisionForest& NeighborAttack::Forest() const {
+  return *forest_;
 }
 
 Point NeighborAttack::OptimizeAdversarialPoint(Point adv_point,

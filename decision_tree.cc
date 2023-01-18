@@ -54,6 +54,29 @@ std::unique_ptr<DecisionTree> DecisionTree::CreateFromJson(const json& tree_obj,
   return std::move(tree);
 }
 
+std::unique_ptr<DecisionTree> DecisionTree::CreateFromVeritasJson(
+    const json& tree_obj,
+    int class_id,
+    bool is_root,
+    double base_score) {
+
+  std::unique_ptr<DecisionTree> tree;
+  if (tree_obj.contains("leaf_value")) {
+    double leaf_value = tree_obj["leaf_value"];
+    tree = std::make_unique<DecisionTree>(leaf_value + base_score, class_id);
+  } else {
+    tree = std::make_unique<DecisionTree>(-1, class_id);
+    tree->is_leaf_ = false;
+    tree->split_feature_id_ = tree_obj["feat_id"];
+    tree->split_condition_ = tree_obj["split_value"];
+    tree->left_child_  = CreateFromVeritasJson(tree_obj["lt"], class_id, false, base_score);
+    tree->right_child_ = CreateFromVeritasJson(tree_obj["gteq"], class_id, false, base_score);
+  }
+
+  tree->is_root_ = is_root;
+  return tree;
+}
+
 int DecisionTree::ClassId() const {
   return class_id_;
 }

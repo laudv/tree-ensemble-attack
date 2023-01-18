@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <sstream>
 
 #include "utility.h"
 
@@ -19,7 +20,17 @@ class DecisionForest {
                                                         int num_class,
                                                         int max_feature_id);
 
+  static std::unique_ptr<DecisionForest> CreateFromJson(const nlohmann::json& forest,
+                                                        int num_class,
+                                                        int max_feature_id);
+
+  static std::unique_ptr<DecisionForest> CreateFromVeritasJson(const nlohmann::json& forest,
+                                                        int num_class,
+                                                        int max_feature_id);
+
+
   int PredictLabel(const Point& x) const;
+  double ComputeScore(const Point& x) const;
   int PredictLabelBetween(const Point& x, int class1, int class2) const;
 
   std::unique_ptr<LayeredBoundingBox>
