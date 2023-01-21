@@ -326,8 +326,8 @@ NeighborAttack::Result NeighborAttack::FindAdversarialPoint(
     const Point& victim_point) const {
 
   int victim_label = forest_->PredictLabel(victim_point);
-  printf("NeighborAttack::FindAdversarialPoint Spawning %d threads\n",
-         config_.num_threads);
+  //printf("NeighborAttack::FindAdversarialPoint Spawning %d threads\n",
+  //       config_.num_threads);
   boost::asio::thread_pool pool(config_.num_threads);
 
   int num_work = config_.num_attack_per_point;
@@ -365,11 +365,11 @@ void NeighborAttack::FindAdversarialPoint_ThreadRun(int task_id,
                                                     const Point& victim_point,
                                                     int victim_label,
                                                     Result* result) const {
-  printf(
-      "NeighborAttack::FindAdversarialPoint_ThreadRun Trying %d/%d random "
-      "starting points... thread_id:%s\n",
-      task_id + 1, config_.num_attack_per_point,
-      boost::lexical_cast<std::string>(boost::this_thread::get_id()).c_str());
+  //printf(
+  //    "NeighborAttack::FindAdversarialPoint_ThreadRun Trying %d/%d random "
+  //    "starting points... thread_id:%s\n",
+  //    task_id + 1, config_.num_attack_per_point,
+  //    boost::lexical_cast<std::string>(boost::this_thread::get_id()).c_str());
 
   if (config_.search_mode == SearchMode::Region) {
     return RegionBasedAttackAppr_ThreadRun(task_id, victim_point, victim_label,
@@ -411,8 +411,8 @@ void NeighborAttack::FindAdversarialPoint_ThreadRun(int task_id,
 
   int target_label = forest_->PredictLabel(p);
 
-  printf("Initial point label:%d\n",
-         forest_->PredictLabelBetween(p, target_label, victim_label));
+  //printf("Initial point label:%d\n",
+  //       forest_->PredictLabelBetween(p, target_label, victim_label));
   DCHECK(
       !HasSameLabel(forest_->PredictLabelBetween(p, target_label, victim_label),
                     victim_label));
@@ -423,8 +423,8 @@ void NeighborAttack::FindAdversarialPoint_ThreadRun(int task_id,
       !HasSameLabel(forest_->PredictLabelBetween(p, target_label, victim_label),
                     victim_label));
 
-  printf("Norms for random point %d:%s\n", task_id + 1,
-         GetNormStringForLogging(p, victim_point).c_str());
+  //printf("Norms for random point %d:%s\n", task_id + 1,
+  //       GetNormStringForLogging(p, victim_point).c_str());
 
   UpdateResult(p, victim_point, result);
 }

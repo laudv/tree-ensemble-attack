@@ -282,11 +282,20 @@ void BenchmarkDistortionVeritas(const Config& config) {
           cout << "<FAIL>" << example_count << endl;
       } else {
           const Point& best_linf_point = result.best_points[-1];
-          // <true label> <adv label> [<feat_id>:<value>]+
+          double y_score_adv = attack->Forest().ComputeScore(best_linf_point);
+          cout << "SUCCESS base_label=" << label
+               << ", adv_point=" << best_linf_point.ToDebugString()
+               << ", pred=" << y_score << " -> " << y_score_adv << endl;
+
+          // <true label> <adv label> <score> <adv_score> [<feat_id>:<value>]+
           cout << "<ADV_EX>"
               << y_pred
               << " "
               << attack->Forest().PredictLabel(best_linf_point)
+              << " "
+              << y_score
+              << " "
+              << y_score_adv
               << " "
               << best_linf_point.ToDebugString() << endl;
 
