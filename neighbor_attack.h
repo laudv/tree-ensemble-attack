@@ -74,6 +74,7 @@ class NeighborAttack {
   void LoadForestFromVeritasJson(const nlohmann::json& json);
 
   Result FindAdversarialPoint(const Point& victim_point) const;
+  Result FindAdversarialPoint_singlethread(const Point& victim_point) const;
 
   int PredictLabel(const Point& point) const;
 

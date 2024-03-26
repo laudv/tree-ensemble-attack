@@ -361,6 +361,39 @@ NeighborAttack::Result NeighborAttack::FindAdversarialPoint(
   return std::move(best_result);
 }
 
+NeighborAttack::Result NeighborAttack::FindAdversarialPoint_singlethread(
+    const Point& victim_point) const {
+
+  int victim_label = forest_->PredictLabel(victim_point);
+
+  int num_work = config_.num_attack_per_point;
+  if (config_.search_mode == SearchMode::Region)
+    num_work = config_.num_threads;
+
+  Result results[num_work];
+  for (int i = 0; i < num_work; ++i) {
+    this->FindAdversarialPoint_ThreadRun(i, victim_point, victim_label, &results[i]);
+  }
+
+  Result best_result;
+  for (int i = 0; i < num_work; ++i) {
+    if (!results[i].success())
+      continue;
+
+    best_result.hist_points.push_back(
+        results[i].best_points[config_.norm_type]);
+    for (const int norm_type : kAllowedNormTypes) {
+      double new_norm = results[i].best_norms[norm_type];
+      if (new_norm < best_result.best_norms[norm_type]) {
+        best_result.best_norms[norm_type] = new_norm;
+        best_result.best_points[norm_type] = results[i].best_points[norm_type];
+      }
+    }
+  }
+
+  return best_result;
+}
+
 void NeighborAttack::FindAdversarialPoint_ThreadRun(int task_id,
                                                     const Point& victim_point,
                                                     int victim_label,

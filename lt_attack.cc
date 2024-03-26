@@ -270,7 +270,7 @@ void BenchmarkDistortionVeritas(const Config& config) {
       }
 
       auto start_time = high_resolution_clock::now();
-      auto result = attack->FindAdversarialPoint(point);
+      auto result = attack->FindAdversarialPoint_singlethread(point);
       auto end_time = high_resolution_clock::now();
       double total_sec =
           static_cast<double>(
